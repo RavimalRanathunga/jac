@@ -244,6 +244,7 @@ obj ModelPool(BaseLLM) {
     override def model_call_no_stream(params: dict[str, any]) -> dict[str, any];
     override def model_call_with_stream(params: dict[str, any]) -> Iterable[object];
     override def _get_ctx_window(call_params: dict[str, any]) -> int;
+    override def _resolve_timeout(mt_run: MTRuntime) -> float | None;
 }
 
 obj Model(BaseLLM) {
