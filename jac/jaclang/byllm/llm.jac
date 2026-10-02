@@ -16,6 +16,8 @@ import from jaclang.byllm._optdeps.openai { openai, OpenAI, AsyncOpenAI }
 import from jaclang.project.capabilities { require_optional }
 import from jaclang.byllm.exceptions {
     AuthenticationError,
+    ByLLMError,
+    LLMTimeout,
     FinishToolError,
     OutputConversionError,
     RateLimitError,

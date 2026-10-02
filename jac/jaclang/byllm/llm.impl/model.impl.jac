@@ -242,7 +242,23 @@ def _stream_with_telemetry(
     }
 }
 
+def _is_timeout_error(e: Exception) -> bool {
+    if isinstance(e, (litellm.Timeout, openai.APITimeoutError)) {
+        return True;
+    }
+    try {
+        import httpx;
+        return isinstance(e, httpx.TimeoutException);
+    } except ImportError {
+        return False;
+    }
+}
+
+
 impl Model._raise_mapped_provider_error(e: Exception) -> None {
+    if isinstance(e, ByLLMError) {
+        raise;
+    }
     if isinstance(
         e, (litellm.exceptions.AuthenticationError, openai.AuthenticationError)
     ) {
@@ -256,6 +272,10 @@ impl Model._raise_mapped_provider_error(e: Exception) -> None {
     if isinstance(e, (litellm.exceptions.NotFoundError, openai.NotFoundError)) {
         logger.error(f"LLM ModelNotFoundError: {e}");
         raise ModelNotFoundError(str(e));
+    }
+    if _is_timeout_error(e) {
+        logger.error(f"LLM LLMTimeout: {e}");
+        raise LLMTimeout(message=str(e), model=self.model_name);
     }
     logger.error(f"LLM call failed with {type(e).__name__}: {e}");
     raise;
