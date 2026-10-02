@@ -751,7 +751,7 @@ impl BaseLLM._resolve_stream_retries(mt_run: MTRuntime) -> int {
 
 
 impl BaseLLM._resolve_timeout(mt_run: MTRuntime) -> float | None {
-    timeout = mt_run.call_params.get("timeout");
+    timeout: any = mt_run.call_params.get("timeout");
     if timeout is None {
         timeout = self.call_params.get("timeout");
     }

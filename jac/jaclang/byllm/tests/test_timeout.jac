@@ -77,9 +77,7 @@ test "LLMTimeout stays retryable" {
 test "every transport's timeout type is recognised" {
     import httpx;
     assert _is_timeout_error(
-        litellm.Timeout(
-            message="stalled", model="gpt-4o-mini", llm_provider="openai"
-        )
+        litellm.Timeout(message="stalled", model="gpt-4o-mini", llm_provider="openai")
     ) , "the litellm transport";
     assert _is_timeout_error(httpx.ReadTimeout("stalled")) , "the http_client transport";
     assert not _is_timeout_error(ValueError("not a timeout"));

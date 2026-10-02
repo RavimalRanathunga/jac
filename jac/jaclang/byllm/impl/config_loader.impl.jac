@@ -13,11 +13,7 @@ impl JacByllmConfig.get_default_config(self: JacByllmConfig) -> dict[str, any] {
             'proxy': False,
             'verbose': False
         },
-        'call_params': {
-            'max_tokens': 0,
-            'max_output_retries': 3,
-            'timeout': 600.0
-        },
+        'call_params': {'max_tokens': 0, 'max_output_retries': 3, 'timeout': 600.0},
         'litellm': {
             'local_cost_map': True,
             'drop_params': True,

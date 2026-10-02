@@ -362,7 +362,11 @@ impl Model.model_call_http(
 ) -> dict[str, any] {
     import httpx;
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"};
-    body = {k: v for (k, v) in payload.items() if k != "timeout"};
+    body = {
+        k: v
+        for (k, v) in payload.items()
+        if k != "timeout"
+    };
     client = httpx.Client(
         verify=ca_bundle or True, timeout=payload.get("timeout", 60.0)
     );
@@ -456,7 +460,11 @@ impl Model.model_call_http_async(
 ) -> dict[str, any] {
     import httpx;
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"};
-    body = {k: v for (k, v) in payload.items() if k != "timeout"};
+    body = {
+        k: v
+        for (k, v) in payload.items()
+        if k != "timeout"
+    };
     client = httpx.AsyncClient(
         verify=ca_bundle or True, timeout=payload.get("timeout", 60.0)
     );
