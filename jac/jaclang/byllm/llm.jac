@@ -106,13 +106,15 @@ obj BaseLLM {
         api_base: str = "",
         call_params: dict[(str, object)] = {},
         ctx_window: int = 0,
-        supports_native_tools: bool = True;
+        supports_native_tools: bool = True,
+        timeout: float | None = None;
 
     def __call__(**kwargs: object) -> BaseLLM;
     def invoke(mt_run: MTRuntime) -> any;
     async def ainvoke(mt_run: MTRuntime) -> any;
     def _resolve_output_attempts(mt_run: MTRuntime) -> int;
     def _resolve_stream_retries(mt_run: MTRuntime) -> int;
+    def _resolve_timeout(mt_run: MTRuntime) -> float | None;
     def _should_retry_stream(
         mt_run: MTRuntime, e: Exception, attempt: int, usage_base: int = -1
     ) -> bool;
