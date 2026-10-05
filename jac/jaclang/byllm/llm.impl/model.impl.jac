@@ -315,7 +315,10 @@ impl Model.model_call_no_stream(params: dict[str, any]) -> dict[str, any] {
         } else {
             require_optional("litellm", "llm");
             response = litellm.completion(
-                api_key=self.api_key or None, api_base=self.api_base or None, **params
+                api_key=self.api_key or None,
+                api_base=self.api_base or None,
+                num_retries=0,
+                **params
             );
         }
     } except Exception as e {
@@ -357,16 +360,22 @@ impl Model.model_call_with_stream(params: dict[str, any]) -> Iterable[object] {
     return response;
 }
 
+"""The request body, without the transport setting that rides in the same dict.
+
+`timeout` reaches these two through `payload` because that dict doubles as the
+POST body; httpx takes it as a client argument, and a provider has no field for
+it."""
+def _body_without_timeout(payload: dict[str, any]) -> dict[str, any] {
+    return {k: v for (k, v) in payload.items() if k != "timeout"};
+}
+
+
 impl Model.model_call_http(
     url: str, token: str, payload: dict[str, any], ca_bundle: (str | bool | None)
 ) -> dict[str, any] {
     import httpx;
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"};
-    body = {
-        k: v
-        for (k, v) in payload.items()
-        if k != "timeout"
-    };
+    body = _body_without_timeout(payload);
     client = httpx.Client(
         verify=ca_bundle or True, timeout=payload.get("timeout", 60.0)
     );
@@ -399,7 +408,10 @@ impl Model.model_call_no_stream_async(params: dict[str, any]) -> dict[str, any] 
         } else {
             require_optional("litellm", "llm");
             response = await litellm.acompletion(
-                api_key=self.api_key or None, api_base=self.api_base or None, **params
+                api_key=self.api_key or None,
+                api_base=self.api_base or None,
+                num_retries=0,
+                **params
             );
         }
     } except Exception as e {
@@ -460,11 +472,7 @@ impl Model.model_call_http_async(
 ) -> dict[str, any] {
     import httpx;
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"};
-    body = {
-        k: v
-        for (k, v) in payload.items()
-        if k != "timeout"
-    };
+    body = _body_without_timeout(payload);
     client = httpx.AsyncClient(
         verify=ca_bundle or True, timeout=payload.get("timeout", 60.0)
     );

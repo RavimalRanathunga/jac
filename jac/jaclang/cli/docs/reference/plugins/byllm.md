@@ -815,53 +815,22 @@ The original rejected text remains available on `raw_output` (see [`OutputConver
 
 ## Request Timeout
 
-A non-streaming request is bounded by `[byllm.call_params] timeout`, in seconds.
-When it expires the call raises `LLMTimeout`.
+A non-streaming request is bounded by `[byllm.call_params] timeout`, in seconds,
+overridable per `Model(timeout=...)` and per `by llm(timeout=...)`; the most
+specific value set wins. When it expires the call raises `LLMTimeout`. `0` drops
+the bound and lets the provider resolve its own, for a long batch job that must
+not be interrupted.
 
 The bound exists because a provider that stalls does not fail: the connection
 stays open, no bytes arrive, and nothing raises. In a server that pins an HTTP
 worker thread or a background job slot for as long as the socket lives.
 
-### Resolution order
+### It bounds one request, not one turn
 
-The first value set wins:
-
-1. the call site, `by llm(timeout=30.0)`
-2. the model's call params, `llm(timeout=30.0)`
-3. the model field, `Model(model_name="gpt-4o", timeout=30.0)`
-4. `[byllm.call_params] timeout` in `jac.toml`
-5. `600.0`
-
-```jac
-glob reviewer = Model(model_name="gpt-4o", timeout=120.0);
-
-# Inherits the model's 120s.
-def review(diff: str) -> str by reviewer();
-
-# Tighter bound for a call that should be quick.
-def classify(text: str) -> str by reviewer(timeout=15.0);
-```
-
-```toml
-# jac.toml: project-wide default
-[byllm.call_params]
-timeout = 120.0
-```
-
-`0` drops the bound and lets the provider resolve its own, which is the
-behaviour of every non-streaming call before this setting existed. Use it for a
-long batch job that must not be interrupted.
-
-### What it does and does not bound
-
-It bounds **one request**, not one turn. Two multipliers sit above it:
-
-- a transient failure, including a timeout, is retried `[byllm.streaming]
-  num_retries` times (default `2`), so a 90s timeout is up to ~270s on one call
-  plus backoff
-- a ReAct loop makes one request per iteration
-
-Size it against a single provider call, then bound the turn separately with
+A ReAct loop makes one request per iteration, and a transient failure --
+a timeout included -- is retried `[byllm.streaming] num_retries` times
+(default `2`), so a 90s bound is up to ~270s on a single call plus backoff.
+Size it against one provider call, then bound the turn separately with
 `max_react_iterations` or an `on_iteration` hook if a job slot needs a hard
 ceiling.
 
@@ -874,7 +843,7 @@ ceiling.
 | `ModelPool` | `[byllm.fallback] timeout`, applied by the litellm Router | `60.0` |
 
 A streaming call measures the gap between chunks, not the whole response, so the
-two settings are not interchangeable and a streaming call ignores
+two are not interchangeable and a streaming call ignores
 `[byllm.call_params] timeout`. A `ModelPool` leaves the bound to its Router.
 
 ### Catching it

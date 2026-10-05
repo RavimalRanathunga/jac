@@ -20,7 +20,8 @@ obj LLMTimeout(ByLLMError, litellm.Timeout) {
     has model: str = "",
         llm_provider: str = "",
         num_retries: int | None = None,
-        max_retries: int | None = None;
+        max_retries: int | None = None,
+        status_code: int = 408;
 
     def postinit -> None;
     def __str__ -> str;
