@@ -34,16 +34,15 @@ test "the bound resolves through its precedence chain" {
         ),
         # The escape hatch for a long batch job: no key means the provider
         # resolves its own bound, as every non-streaming call did before #9622.
-        ("zero drops the bound", Model(model_name="gpt-4o-mini", timeout=0.0), {}, None),
+        ("zero drops the bound", Model(model_name="gpt-4o-mini", timeout=0.0), {}, None)
     ];
     for (label, model, call_params, expected) in cases {
-        params = model.make_model_params(
-            mk_run(stream=False, call_params=call_params)
-        );
+        params = model.make_model_params(mk_run(stream=False, call_params=call_params));
+        got = params.get("timeout");
         if expected is None {
-            assert "timeout" not in params , f"{label}: got {params.get('timeout')!r}";
+            assert "timeout" not in params , f"{label}: got {got!r}";
         } else {
-            assert params["timeout"] == expected , f"{label}: got {params['timeout']!r}";
+            assert got == expected , f"{label}: got {got!r}";
         }
     }
 }
@@ -95,9 +94,7 @@ test "a stalled endpoint raises LLMTimeout at the configured bound" {
         worker.join(timeout=2.0);
     }
     elapsed = time.monotonic() - started;
-    assert isinstance(raised, LLMTimeout) , (
-        f"got {type(raised).__name__}: {raised}"
-    );
+    assert isinstance(raised, LLMTimeout) , f"got {type(raised).__name__}: {raised}";
     assert elapsed >= 3.0 , f"gave up before the bound: {elapsed:.1f}s";
     # One request, not three. Without num_retries=0 on the provider call
     # litellm retries twice of its own accord and this lands near 11s.

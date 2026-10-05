@@ -21,7 +21,7 @@ impl Model.postinit -> None {
 
     if not self.api_key {
         self.api_key = self.config.get("api_key", "")
-            or _model_config.get("api_key", "");
+        or _model_config.get("api_key", "");
     }
 
     if self.model_name == MODEL_MOCK {
@@ -328,8 +328,9 @@ impl Model.model_call_no_stream(params: dict[str, any]) -> dict[str, any] {
 }
 
 impl Model.model_call_with_stream(params: dict[str, any]) -> Iterable[object] {
-    params["stream_options"] = (params.get("stream_options") or {})
-        | {"include_usage": True};
+    params["stream_options"] = (params.get("stream_options") or {}) | {
+        "include_usage": True
+    };
     try {
         if self.proxy {
             require_optional("openai", "llm");
@@ -360,13 +361,12 @@ impl Model.model_call_with_stream(params: dict[str, any]) -> Iterable[object] {
     return response;
 }
 
-"""The request body, without the transport setting that rides in the same dict.
-
-`timeout` reaches these two through `payload` because that dict doubles as the
-POST body; httpx takes it as a client argument, and a provider has no field for
-it."""
 def _body_without_timeout(payload: dict[str, any]) -> dict[str, any] {
-    return {k: v for (k, v) in payload.items() if k != "timeout"};
+    return {
+        k: v
+        for (k, v) in payload.items()
+        if k != "timeout"
+    };
 }
 
 
@@ -424,8 +424,9 @@ impl Model.model_call_with_stream_async(
     params: dict[str, any]
 ) -> AsyncIterator[object] {
     response: object;
-    params["stream_options"] = (params.get("stream_options") or {})
-        | {"include_usage": True};
+    params["stream_options"] = (params.get("stream_options") or {}) | {
+        "include_usage": True
+    };
     try {
         if self.http_client {
             response = await self.model_call_http_async(
