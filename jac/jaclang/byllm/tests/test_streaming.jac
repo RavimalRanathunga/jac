@@ -320,9 +320,7 @@ test "the inter-chunk read timeout is set for streaming only" {
     assert "timeout" in streaming , "a stream needs a read timeout to fail fast";
     assert streaming["timeout"].read == 90.0 , f"got {streaming['timeout'].read}";
 
-    # A non-streaming call gets a flat per-request bound instead. 90s between
-    # chunks says nothing about how long one blocking request may take, so the
-    # two must not share a value -- see test_timeout.jac for the bound itself.
+    # Non-streaming gets a flat timeout instead; see test_timeout.jac.
     plain = model.make_model_params(mk_run(stream=False));
     assert not hasattr(plain["timeout"], "read") , (
         "a non-streaming call must not inherit the inter-chunk timeout"

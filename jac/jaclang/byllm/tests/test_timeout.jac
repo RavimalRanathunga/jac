@@ -1,10 +1,4 @@
-"""Non-streaming request timeout: the bound, where it comes from, and its error.
-
-A non-streaming `by llm()` call carries a flat per-request timeout, resolved
-from the call site, the model, then `[byllm.call_params]`. A provider that
-stalls past it raises `LLMTimeout`, which stays retryable because it is still a
-`litellm.Timeout`.
-"""
+"""Non-streaming request timeout (#9622): where it resolves from, and LLMTimeout."""
 
 import socket;
 import threading;
@@ -32,8 +26,6 @@ test "the bound resolves through its precedence chain" {
             {"timeout": 15.0},
             15.0
         ),
-        # The escape hatch for a long batch job: no key means the provider
-        # resolves its own bound, as every non-streaming call did before #9622.
         ("zero drops the bound", Model(model_name="gpt-4o-mini", timeout=0.0), {}, None)
     ];
     for (label, model, call_params, expected) in cases {
@@ -49,10 +41,7 @@ test "the bound resolves through its precedence chain" {
 
 
 test "a stalled endpoint raises LLMTimeout at the configured bound" {
-    # The acceptance criterion in #9622. A socket that accepts, reads the
-    # request and never answers is the only way to see the bound actually
-    # fire: the right float being in the params dict says nothing about how
-    # many requests that float is spent on.
+    # A socket that accepts and never answers.
     require_module("litellm");
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1);
@@ -96,15 +85,13 @@ test "a stalled endpoint raises LLMTimeout at the configured bound" {
     elapsed = time.monotonic() - started;
     assert isinstance(raised, LLMTimeout) , f"got {type(raised).__name__}: {raised}";
     assert elapsed >= 3.0 , f"gave up before the bound: {elapsed:.1f}s";
-    # One request, not three. Without num_retries=0 on the provider call
-    # litellm retries twice of its own accord and this lands near 11s.
+    # One request, not three: litellm's own retries would land near 11s.
     assert elapsed < 9.0 , f"the bound covered more than one request: {elapsed:.1f}s";
 }
 
 
 test "a pool leaves the bound to its router" {
-    # ModelPool.postinit hands timeout to the litellm Router, so injecting it
-    # per request would set the same value twice by two different routes.
+    # The Router already gets [byllm.fallback] timeout.
     pool = ModelPool(models=[Model(model_name="gpt-4o-mini")]);
     assert pool._resolve_timeout(mk_run(stream=False)) is None;
     assert "timeout" not in pool.make_model_params(mk_run(stream=False));
@@ -112,18 +99,13 @@ test "a pool leaves the bound to its router" {
 
 
 test "LLMTimeout and RateLimitError stay retryable" {
-    # _is_transient_error matches litellm.Timeout by isinstance, and the react
-    # loop retries in place on it with the tool history intact. A LLMTimeout
-    # that broke that inheritance would disable those retries silently.
     err = LLMTimeout(message="provider stalled", model="gpt-4o-mini");
     assert isinstance(err, litellm.Timeout) , "LLMTimeout must remain a litellm.Timeout";
     assert _is_transient_error(err) , "LLMTimeout must stay transient";
     assert str(err) == "provider stalled" , f"got {str(err)!r}";
     assert err.model == "gpt-4o-mini" , f"got {err.model!r}";
-    # Third-party `except litellm.Timeout` handlers read this; litellm sets 408.
     assert err.status_code == 408 , f"got {err.status_code!r}";
-    # num_retries=0 turned off litellm's own 429 retry, so byLLM's loop must
-    # take it over or a rate-limited call fails on the first hit.
+    # litellm's own 429 retry is off (num_retries=0), so byLLM must retry it.
     assert _is_transient_error(RateLimitError("429")) , "RateLimitError must stay transient";
 }
 
