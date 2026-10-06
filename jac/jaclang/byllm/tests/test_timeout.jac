@@ -10,7 +10,7 @@ import socket;
 import threading;
 import time;
 import from jaclang.byllm._optdeps.litellm { litellm }
-import from jaclang.byllm.exceptions { LLMTimeout }
+import from jaclang.byllm.exceptions { LLMTimeout, RateLimitError }
 import from jaclang.byllm.lib { Model, ModelPool }
 import from jaclang.byllm.llm { _is_timeout_error, _is_transient_error }
 import from jaclang.testing.requires { require_module }
@@ -111,7 +111,7 @@ test "a pool leaves the bound to its router" {
 }
 
 
-test "LLMTimeout stays retryable" {
+test "LLMTimeout and RateLimitError stay retryable" {
     # _is_transient_error matches litellm.Timeout by isinstance, and the react
     # loop retries in place on it with the tool history intact. A LLMTimeout
     # that broke that inheritance would disable those retries silently.
@@ -122,6 +122,9 @@ test "LLMTimeout stays retryable" {
     assert err.model == "gpt-4o-mini" , f"got {err.model!r}";
     # Third-party `except litellm.Timeout` handlers read this; litellm sets 408.
     assert err.status_code == 408 , f"got {err.status_code!r}";
+    # num_retries=0 turned off litellm's own 429 retry, so byLLM's loop must
+    # take it over or a rate-limited call fails on the first hit.
+    assert _is_transient_error(RateLimitError("429")) , "RateLimitError must stay transient";
 }
 
 

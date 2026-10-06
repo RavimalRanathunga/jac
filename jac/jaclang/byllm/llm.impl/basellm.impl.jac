@@ -168,7 +168,8 @@ def _is_transient_error(exc: object) -> bool {
             litellm.Timeout,
             litellm.APIConnectionError,
             litellm.InternalServerError,
-            litellm.ServiceUnavailableError
+            litellm.ServiceUnavailableError,
+            RateLimitError
         )
     );
 }
